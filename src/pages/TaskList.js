@@ -1,10 +1,15 @@
 import React, { useState, useMemo } from 'react';
+import KanbanBoard from '../components/KanbanBoard';
+import Pagination from '../components/Pagination';
 
 function TaskList({ tasks, onUpdateTask, onDeleteTask, onNavigate }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortField, setSortField] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
+  const [viewMode, setViewMode] = useState('list'); // 'list' or 'kanban'
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 25;
 
   const handleSort = (field) => {
     if (sortField === field) {
@@ -66,6 +71,28 @@ function TaskList({ tasks, onUpdateTask, onDeleteTask, onNavigate }) {
     return filtered;
   }, [tasks, statusFilter, searchTerm, sortField, sortDirection]);
 
+  // Paginated tasks for list view
+  const paginatedTasks = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredAndSortedTasks.slice(startIndex, endIndex);
+  }, [filteredAndSortedTasks, currentPage, itemsPerPage]);
+
+  // Reset page when filters change
+  const handleFilterChange = (newFilter) => {
+    setStatusFilter(newFilter);
+    setCurrentPage(1);
+  };
+
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -109,13 +136,36 @@ function TaskList({ tasks, onUpdateTask, onDeleteTask, onNavigate }) {
         </button>
       </div>
 
-      <div className="task-list-filters">
+      <div className="view-toggle">
+        <button
+          className={`view-toggle-button ${viewMode === 'list' ? 'active' : ''}`}
+          onClick={() => setViewMode('list')}
+        >
+          📋 List View
+        </button>
+        <button
+          className={`view-toggle-button ${viewMode === 'kanban' ? 'active' : ''}`}
+          onClick={() => setViewMode('kanban')}
+        >
+          📊 Kanban Board
+        </button>
+      </div>
+
+      {viewMode === 'kanban' ? (
+        <KanbanBoard
+          tasks={filteredAndSortedTasks}
+          onUpdateTask={onUpdateTask}
+          onNavigate={onNavigate}
+        />
+      ) : (
+        <>
+          <div className="task-list-filters">
         <div className="search-input">
           <input
             type="text"
             placeholder="Search tasks (min 3 characters)..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="search-field"
           />
         </div>
@@ -123,7 +173,7 @@ function TaskList({ tasks, onUpdateTask, onDeleteTask, onNavigate }) {
         <div className="filter-dropdown">
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => handleFilterChange(e.target.value)}
             className="status-filter"
           >
             <option value="All">All</option>
@@ -135,7 +185,7 @@ function TaskList({ tasks, onUpdateTask, onDeleteTask, onNavigate }) {
       </div>
 
       <div className="task-table-container">
-        {filteredAndSortedTasks.length === 0 ? (
+        {paginatedTasks.length === 0 ? (
           <div className="no-tasks-found">
             <p>No tasks found</p>
             {(searchTerm.length >= 3 || statusFilter !== 'All') && (
@@ -167,7 +217,7 @@ function TaskList({ tasks, onUpdateTask, onDeleteTask, onNavigate }) {
               </tr>
             </thead>
             <tbody>
-              {filteredAndSortedTasks.map(task => (
+              {paginatedTasks.map(task => (
                 <tr
                   key={task.id}
                   className="task-row"
@@ -199,7 +249,19 @@ function TaskList({ tasks, onUpdateTask, onDeleteTask, onNavigate }) {
             </tbody>
           </table>
         )}
+
+        {/* Pagination for list view */}
+        {filteredAndSortedTasks.length > itemsPerPage && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredAndSortedTasks.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+          />
+        )}
       </div>
+        </>
+      )}
     </div>
   );
 }

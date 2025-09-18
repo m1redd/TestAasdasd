@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import Navigation from './components/Navigation';
+import ErrorBoundary from './components/ErrorBoundary';
 import Dashboard from './pages/Dashboard';
 import TaskList from './pages/TaskList';
 import CreateTask from './pages/CreateTask';
@@ -101,6 +102,7 @@ function App() {
             onNavigate={handleNavigation}
             onUpdateTask={updateTask}
             onDeleteTask={deleteTask}
+            onCreateTask={handleCreateTask}
             getTaskHistory={getTaskHistory}
           />
         );
@@ -123,17 +125,21 @@ function App() {
   };
 
   return (
-    <div className="App">
-      <Navigation
-        currentPage={currentPage}
-        onNavigate={handleNavigation}
-        currentUser={currentUser}
-        onLogout={handleLogout}
-      />
-      <main className="main-content">
-        {renderCurrentPage()}
-      </main>
-    </div>
+    <ErrorBoundary showDetails={process.env.NODE_ENV === 'development'}>
+      <div className="App">
+        <Navigation
+          currentPage={currentPage}
+          onNavigate={handleNavigation}
+          currentUser={currentUser}
+          onLogout={handleLogout}
+        />
+        <ErrorBoundary>
+          <main className="main-content">
+            {renderCurrentPage()}
+          </main>
+        </ErrorBoundary>
+      </div>
+    </ErrorBoundary>
   );
 }
 

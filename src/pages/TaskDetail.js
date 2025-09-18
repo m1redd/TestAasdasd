@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { refreshUsers } from '../utils/users';
 
-function TaskDetail({ taskId, tasks, onNavigate, onUpdateTask, onDeleteTask, getTaskHistory }) {
+function TaskDetail({ taskId, tasks, onNavigate, onUpdateTask, onDeleteTask, getTaskHistory, onCreateTask }) {
   const task = tasks.find(t => t.id === parseInt(taskId));
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({});
@@ -118,6 +118,46 @@ function TaskDetail({ taskId, tasks, onNavigate, onUpdateTask, onDeleteTask, get
   const handleDelete = () => {
     onDeleteTask(task.id);
     onNavigate('tasks');
+  };
+
+  const handleDuplicate = (originalTask) => {
+    // Generate unique task ID
+    const generateUniqueTaskId = () => {
+      let newTaskId;
+      let isUnique = false;
+
+      while (!isUnique) {
+        newTaskId = `TASK-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+        isUnique = !tasks.some(task => task.taskId === newTaskId);
+      }
+
+      return newTaskId;
+    };
+
+    // Create duplicated task
+    const duplicatedTask = {
+      id: Date.now(),
+      taskId: generateUniqueTaskId(),
+      title: `Copy of ${originalTask.title}`,
+      description: originalTask.description,
+      priority: originalTask.priority,
+      status: 'To Do', // Reset to To Do
+      assignee: originalTask.assignee,
+      dueDate: null, // Reset due date
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      user: 'Current User' // Will be updated by App component
+    };
+
+    // Create the task and navigate to it
+    onCreateTask(duplicatedTask);
+
+    // Show success message and navigate to new task
+    setTimeout(() => {
+      // Find the newly created task and navigate to it
+      const newTaskId = duplicatedTask.id;
+      onNavigate('task-detail', newTaskId);
+    }, 100);
   };
 
   const getTodayDate = () => {
@@ -431,6 +471,12 @@ function TaskDetail({ taskId, tasks, onNavigate, onUpdateTask, onDeleteTask, get
                 onClick={startEditing}
               >
                 Edit Task
+              </button>
+              <button
+                className="duplicate-button"
+                onClick={() => handleDuplicate(task)}
+              >
+                📋 Duplicate Task
               </button>
               <button
                 className="delete-button"
